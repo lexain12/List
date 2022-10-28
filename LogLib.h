@@ -4,7 +4,7 @@
 #include <cstring>
 
 #ifndef LOGNAME
-#define LOGNAME "logfile.txt"
+#define LOGNAME "logfile.html"
 #endif
 
 int logprint(char param);

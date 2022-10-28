@@ -34,7 +34,7 @@ int logprint(double param)
 
 FILE* logOpen(const char* logFileName)
 {
-    FILE* filePtr = fopen(logFileName, "a");
+    FILE* filePtr = fopen(logFileName, "w");
     setvbuf(filePtr, NULL, _IONBF, 0);
 
     const time_t timer = time(NULL);
