@@ -136,7 +136,10 @@ void myGraph (List_t* list)
 
     for (size_t index = 0; index <= list->capacity; ++index)
     {
-        dumpprint("    nd%lu -> nd%lu;\n", index, list->data[index].prevElementInd);
+        if (list->data[index].prevElementInd != SizePoison)
+        {
+            dumpprint("    nd%lu -> nd%lu;\n", index, list->data[index].prevElementInd);
+        }
         dumpprint("    nd%lu -> nd%lu;\n\n", index, list->data[index].nextElementInd);
     }
 
@@ -468,11 +471,13 @@ int main()
     listTailAdd (&list1, 5);
     listTailAdd (&list1, 5);
     listTailAdd (&list1, 5);
-    listDump (&list1, "1\n");
+    listDump (&list1, "Added 5\n");
     listInsertPrev (&list1, 3, 2);
+    listDump (&list1, "inserted 2 before 3\n");
     listInsertPrev (&list1, 2, 1);
+    listDump (&list1, "inserted 1 before 2\n");
     listDelete (&list1, 5);
-    listDump (&list1, "asdf\n");
+    listDump (&list1, "delete 5 element\n");
 
     listDtor (&list1);
 
