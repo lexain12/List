@@ -41,6 +41,7 @@ FILE* logOpen(const char* logFileName)
     fprintf(filePtr, "---------------%s", strtok(ctime(&timer), "\n"));
     fseek(filePtr, -1, SEEK_CUR);
     fprintf(filePtr, "---------------\n");
+    fprintf(filePtr, "<pre>\n");
 
     return filePtr;
 }

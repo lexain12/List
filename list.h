@@ -1,5 +1,7 @@
 #include <stdlib.h>
 
+const char GraphFile[20] = "GraphFile.txt";
+
 enum Errors 
 {
     noErrors             = 0 << 0,
@@ -13,7 +15,7 @@ enum Errors
     listResizeDownError  = 1 << 7,
 };
 
-enum Status
+enum IsSorted
 {
     listSorted    = 0,
     listNotSorted = 1,
@@ -34,13 +36,14 @@ struct List_t
     size_t       tail;
     size_t       free;
     size_t       capacity;
-    Status       status;
+    int          status;
+    IsSorted     isSorted;
 };
 
 int  listCtor (List_t* list, size_t size);
 void listDtor (List_t* list);
 
-void listDump (List_t* list);
+void listDump (List_t* list, const char* str, ...);
 
 int  listVerify (List_t* list);
 int  listLinear (List_t* list);
@@ -53,6 +56,7 @@ size_t listInsertPrev (List_t* list, Elem_t element, size_t anchorIndex);
 size_t listHeadInsert (List_t* list, Elem_t element);
 size_t listTailAdd (List_t* list, Elem_t element);
 Elem_t listDelete (List_t* list, size_t anchorIndex);
+size_t listHeadAdd (List_t* list, Elem_t element);
 
 
 size_t listBegin ();
