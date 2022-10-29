@@ -6,6 +6,7 @@ typedef int Elem_t;
 #include "list.h"
 #define Format_ "%-3d"
 const int Poison = 0xDEADBEEF;
+const size_t SizePoison = 0xDEADBEEF;
 
 extern FILE* LOGFILEPTR;
 
@@ -14,19 +15,17 @@ int listCtor (List_t* list, size_t capacity)
     int errors = noErrors;
     ListElement* newDataPtr = (ListElement*) calloc (sizeof(ListElement), capacity + 1);
 
-    if (newDataPtr == nullptr)  
+    if (newDataPtr == nullptr)
         return errors |= listptrError;
 
     list->data     = newDataPtr;
     list->capacity = capacity;
-    list->head     = 1;
-    list->tail     = 0;
     list->free     = 1;
     list->size     = 0;
     list->isSorted = listSorted;
     list->status   = noErrors;
 
-    list->data[0].element = 0;
+    list->data[0].element = Poison;
     list->data[0].prevElementInd = 0;
     list->data[0].nextElementInd = 0;
 
@@ -43,11 +42,9 @@ int listCtor (List_t* list, size_t capacity)
 void listDtor (List_t* list)
 {
 
-    list->capacity = 0;
-    list->size     = 0;
-    list->head     = 0;
-    list->tail     = 0;
-    list->free     = 0;
+    list->capacity               = 0;
+    list->size                   = 0;
+    list->free                   = 0;
 
     list->data[0].element        = 0;
     list->data[0].prevElementInd = 0;
@@ -71,20 +68,8 @@ size_t listHeadAdd (List_t* list, Elem_t element)
         listResizeUp (list);
     }
 
-    size_t head = list->head;
-    list->head  = list->free;
-    list->free  = list->data[list->head].nextElementInd;
 
-    list->data[head].prevElementInd = list->head;
-
-    list->data[list->head].prevElementInd = 0;
-    list->data[list->head].nextElementInd = head;
-    list->data[list->head].element        = element;
-
-    list->size += 1;
-    list->isSorted = listNotSorted;
-
-    return list->head;
+    return listInsertPrev (list, list->data[0].nextElementInd, element);
 }
 
 size_t listTailAdd (List_t* list, Elem_t element)
@@ -99,24 +84,7 @@ size_t listTailAdd (List_t* list, Elem_t element)
         listResizeUp (list);
     }
 
-    size_t tail = list->tail;
-    list->tail  = list->free;
-    list->free  = list->data[list->tail].nextElementInd;
-
-    list->data[tail].nextElementInd = list->tail;
-    
-    list->data[list->tail].prevElementInd = tail;
-    list->data[list->tail].element        = element;
-    list->data[list->tail].nextElementInd = 0;
-
-    list->size += 1;
-
-    if (list->status |= listVerify (list))
-    {
-        listDump (list, "Error after listTailAdd function, element: "Format_"\n", element);
-    }
-
-    return list->tail;
+    return listInsertAfter (list, list->data[0].prevElementInd, element);
 }
 
 void myGraph (List_t* list)
@@ -132,8 +100,6 @@ void myGraph (List_t* list)
     dumpprint ("digraph MyGraph {\n")
     dumpprint ("    node [color=black, shape=box, style=\"rounded, filled\"];\n")
     dumpprint ("    rankdir=LR;\n")
-    dumpprint ("    head [fillcolor=\"#74c2f2\", label=\"head = %lu\"];\n", list->head)
-    dumpprint ("    tail [fillcolor=\"#74c2f2\", label=\"tail = %lu\"];\n", list->tail)
     dumpprint ("    free [fillcolor=\"#74c2f2\", label=\"free = %lu\"];\n", list->free)
     dumpprint ("    size [fillcolor=\"#74c2f2\", label=\"size = %lu\"];\n", list->size)
     dumpprint ("    capacity [fillcolor=\"#74c2f2\", label=\"capacity = %lu\"];\n", list->capacity)
@@ -142,8 +108,8 @@ void myGraph (List_t* list)
     dumpprint ("    node[color=black, shape=record, style=\"rounded, filled\"];\n")
     dumpprint ("    edge[style = invis, constraint=true];\n")
 
-    dumpprint ("    nd%d [fillcolor=\"#a1a1a1\", label=\"node %d | value: "Format_"| { <p> prev: %lu | <n> next: %lu  }\"];\n",
-                0, 0, list->data[0].element, list->data[0].prevElementInd, list->data[0].nextElementInd)
+    dumpprint ("    nd%d [fillcolor=\"#a1a1a1\", label=\"node %d | value: Poison | { <p> prev: %lu | <n> next: %lu  }\"];\n",
+                0, list->data[0].element, list->data[0].prevElementInd, list->data[0].nextElementInd)
 
     for (size_t index = 1; index <= list->capacity; ++index)
     {
@@ -152,10 +118,10 @@ void myGraph (List_t* list)
         if (list->data[index].element == Poison)
             dumpprint ("fillcolor =\"#80f293\", label =\"node %lu | value: Poison", index)
 
-        else if (index == list->head)
+        else if (index == list->data[0].nextElementInd)
             dumpprint ("fillcolor =\"#fcf400\", label =\"node %lu | value:"Format_, index, list->data[index].element)
 
-        else if (index == list->tail)
+        else if (index == list->data[0].prevElementInd)
             dumpprint ("fillcolor =\"#fc8b00\", label =\"node %lu | value:"Format_, index, list->data[index].element)
 
         else 
@@ -175,9 +141,7 @@ void myGraph (List_t* list)
     }
 
     dumpprint ("    edge [style = bold, constraint=false];\n")
-    dumpprint ("    head -> nd%lu;\n", list->head)
     dumpprint ("    free -> nd%lu;\n", list->free)
-    dumpprint ("    tail -> nd%lu;\n", list->tail)
 
     dumpprint ("}\n")
 
@@ -203,10 +167,11 @@ void listDump (List_t* list, const char* str, ...)
     fprintf (LOGFILEPTR, "<h2>");
     vfprintf (LOGFILEPTR, str, argPtr);
     fprintf (LOGFILEPTR, "</h2>\n");
+    fprintf (LOGFILEPTR, "<h2>Status:</h2>\n");
     
 if (list->status)
     {
-        fprintf(LOGFILEPTR, "(ERROR: %d)\n", list->status);
+        fprintf(LOGFILEPTR, "<h2>(ERROR: %d)</h2>\n", list->status);
         fprintf(LOGFILEPTR, "-----------------Errors-------------------\n");
     #define ErrorPrint(error, text)                                       \
                 if (error & list->status)                                       \
@@ -226,7 +191,7 @@ if (list->status)
         fprintf(LOGFILEPTR, "-------------End-of-errors----------------\n");
     }
     else
-        fprintf(LOGFILEPTR, "(no errors) ");
+        fprintf(LOGFILEPTR, "<h2> (no errors) </h2>\n");
     
     myGraph (list);
     static int picVersion = 0;
@@ -235,7 +200,7 @@ if (list->status)
     return;
 }
 
-size_t listInsertPrev (List_t* list, Elem_t element, size_t anchorIndex)
+size_t listInsertPrev (List_t* list, size_t anchorIndex, Elem_t element)
 {
     if (list->status |= listVerify (list))
     {
@@ -249,17 +214,17 @@ size_t listInsertPrev (List_t* list, Elem_t element, size_t anchorIndex)
         listResizeUp (list);
     }
 
-    size_t prevInd = list->data[anchorIndex].prevElementInd;
-    size_t curFree = list->free;
-    list->free     = list->data[list->free].nextElementInd;
+    size_t nextFree = list->data[list->free].nextElementInd;
+    size_t curFree  = list->free;
 
-    list->data[curFree].element         = element; 
-    list->data[curFree].prevElementInd  = prevInd;
-    list->data[curFree].nextElementInd  = anchorIndex;
+    list->data[curFree].element = element;
+    list->data[curFree].prevElementInd = list->data[anchorIndex].prevElementInd;
 
-    list->data[prevInd].nextElementInd     = list->free;
-    list->data[anchorIndex].prevElementInd = list->free;
+    list->data[list->data[anchorIndex].prevElementInd].nextElementInd = curFree;
+    list->data[anchorIndex].prevElementInd = curFree;
+    list->data[curFree].nextElementInd = anchorIndex;
 
+    list->free = nextFree;
     list->size += 1;
     list->isSorted = listNotSorted;
 
@@ -268,7 +233,24 @@ size_t listInsertPrev (List_t* list, Elem_t element, size_t anchorIndex)
         listDump (list, "Error after listInsertPrev function, element: "Format_", before: %lu\n", element, anchorIndex);
     }
     
-    return list->free;
+    return curFree;
+}
+
+size_t listInsertAfter (List_t* list, size_t anchorIndex, Elem_t element)
+{
+    if (list->status |= listVerify (list))
+    {
+        listDump (list, "Error in listInsertAfter function, element: "Format_", before: %lu\n", element, anchorIndex);
+    }
+
+    assert (list != nullptr);
+
+    if (list->size == list->capacity)
+    {
+        listResizeUp (list);
+    }
+
+    return listInsertPrev (list, list->data[anchorIndex].nextElementInd, element);
 }
 
 Elem_t listDelete (List_t* list, size_t anchorIndex)
@@ -278,20 +260,19 @@ Elem_t listDelete (List_t* list, size_t anchorIndex)
         listDump (list, "Error in listDelete function, delete %lu element \n", anchorIndex);
     }
 
-    size_t prevInd = list->data[anchorIndex].prevElementInd;
-    size_t nextInd = list->data[anchorIndex].nextElementInd;
+    if (list->data[anchorIndex].prevElementInd == SizePoison)
+    {
+        listDump (list, "Error in listDelete function, can't delete element %lu \n", anchorIndex);
+        return Poison;
+    }
+
+    list->data[list->data[anchorIndex].prevElementInd].nextElementInd = list->data[anchorIndex].nextElementInd;
+    list->data[list->data[anchorIndex].nextElementInd].prevElementInd = list->data[anchorIndex].prevElementInd;
+
     Elem_t element = list->data[anchorIndex].element;
-
-    list->data[prevInd].nextElementInd = nextInd;
-    list->data[nextInd].prevElementInd = prevInd;
-
-    list->data[anchorIndex].nextElementInd = list->free;
-    list->data[anchorIndex].prevElementInd = 0;
     list->data[anchorIndex].element = Poison;
-
-    list->free = anchorIndex;
-    list->size -= 1;
-    list->isSorted = listNotSorted;
+    list->data[anchorIndex].nextElementInd = list->free;
+    list->data[anchorIndex].prevElementInd = SizePoison;
 
     if (list->status |= listVerify (list))
     {
@@ -356,7 +337,7 @@ int listLinear (List_t* list)
     list->free = index1;
     list->data = newData;    
     fillList (list);
-    list->tail = index1 - 1;
+    list->data[0].prevElementInd = index1 - 1;
     list->isSorted = listSorted;
 
     if (list->status |= listVerify (list))
@@ -421,7 +402,7 @@ void fillList (List_t* list)
     for (; index <= list->capacity; ++index)
     {
         list->data[index].element = Poison;
-        list->data[index].prevElementInd = 0;
+        list->data[index].prevElementInd = SizePoison;
         list->data[index].nextElementInd = index + 1;
     }
 
@@ -489,6 +470,8 @@ int main()
     listTailAdd (&list1, 5);
     listDump (&list1, "1\n");
     listInsertPrev (&list1, 3, 2);
+    listInsertPrev (&list1, 2, 1);
+    listDelete (&list1, 5);
     listDump (&list1, "asdf\n");
 
     listDtor (&list1);
