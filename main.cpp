@@ -109,7 +109,7 @@ void myGraph (List_t* list)
     dumpprint ("    edge[style = invis, constraint=true];\n")
 
     dumpprint ("    nd%d [fillcolor=\"#a1a1a1\", label=\"node %d | value: Poison | { <p> prev: %lu | <n> next: %lu  }\"];\n",
-                0, list->data[0].element, list->data[0].prevElementInd, list->data[0].nextElementInd)
+                0, 0, list->data[0].prevElementInd, list->data[0].nextElementInd)
 
     for (size_t index = 1; index <= list->capacity; ++index)
     {
@@ -136,8 +136,8 @@ void myGraph (List_t* list)
 
     for (size_t index = 0; index <= list->capacity; ++index)
     {
-        dumpprint("    nd%lu:<p> -> nd%lu;\n", index, list->data[index].prevElementInd);
-        dumpprint("    nd%lu:<n> -> nd%lu;\n\n", index, list->data[index].nextElementInd);
+        dumpprint("    nd%lu -> nd%lu;\n", index, list->data[index].prevElementInd);
+        dumpprint("    nd%lu -> nd%lu;\n\n", index, list->data[index].nextElementInd);
     }
 
     dumpprint ("    edge [style = bold, constraint=false];\n")
