@@ -5,6 +5,7 @@
 typedef int Elem_t;
 #include "list.h"
 #define Format_ "%-3d"
+
 const int Poison = 0xDEADBEEF;
 const size_t SizePoison = 0xDEADBEEF;
 
@@ -174,31 +175,31 @@ void listDump (List_t* list, const char* str, ...)
     
 if (list->status)
     {
-        fprintf(LOGFILEPTR, "<h2>(ERROR: %d)</h2>\n", list->status);
-        fprintf(LOGFILEPTR, "-----------------Errors-------------------\n");
+        fprintf (LOGFILEPTR, "<h2>(ERROR: %d)</h2>\n", list->status);
+        fprintf (LOGFILEPTR, "-----------------Errors-------------------\n");
     #define ErrorPrint(error, text)                                       \
                 if (error & list->status)                                       \
                 {                                                         \
                     fprintf(LOGFILEPTR, "ERROR ["#error"] " #text "\n"); \
                 }
 
-        ErrorPrint(noErrors,             No errors);
-        ErrorPrint(listptrError,          Wrong ptr on structure with list);
-        ErrorPrint(capacityError,        Wrong capacity);
-        ErrorPrint(dataError,            No pointer on data (list with elements));
-        ErrorPrint(sizeError,            Bad Size of list);
-        ErrorPrint(sizeAndCapacityError, Size bigger than capacity => problem with list size)
-        ErrorPrint(listResizeUpError,    Cannot resizeUp the list);
-        ErrorPrint(memAllocError,        Cannot allocate memory);
-        ErrorPrint(listResizeDownError,  Cannot resize down);
-        fprintf(LOGFILEPTR, "-------------End-of-errors----------------\n");
+        ErrorPrint (noErrors,             No errors);
+        ErrorPrint (listptrError,          Wrong ptr on structure with list);
+        ErrorPrint (capacityError,        Wrong capacity);
+        ErrorPrint (dataError,            No pointer on data (list with elements));
+        ErrorPrint (sizeError,            Bad Size of list);
+        ErrorPrint (sizeAndCapacityError, Size bigger than capacity => problem with list size)
+        ErrorPrint (listResizeUpError,    Cannot resizeUp the list);
+        ErrorPrint (memAllocError,        Cannot allocate memory);
+        ErrorPrint (listResizeDownError,  Cannot resize down);
+        fprintf (LOGFILEPTR, "-------------End-of-errors----------------\n");
     }
     else
         fprintf(LOGFILEPTR, "<h2> (no errors) </h2>\n");
     
     myGraph (list);
     static int picVersion = 0;
-    fprintf(LOGFILEPTR, "<img src = \"src/pic%d.svg\"/>\n", picVersion++);
+    fprintf (LOGFILEPTR, "<img src = \"src/pic%d.svg\"/>\n", picVersion++);
 
     return;
 }
